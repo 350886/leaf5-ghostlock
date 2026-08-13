@@ -1,0 +1,38 @@
+# Probe transcripts 2026-08-13 #38 slot _b
+
+## slotb_surface_reach
+open /dev/kgsl-3d0 OK; ashmem errno=13; binder/hwbinder/uhid/uinput OK;
+ion RW denied RD ok; qce/diag/dri 13; adsprpc RD ok
+kgsl DRAWCTXT_CREATE flags=0x12 ret=0 id=11 DESTROY ok
+bpf MAP_CREATE errno=13
+perf SW_CPU_CLOCK ok; HW_CYCLES ok
+KERNEL SURVIVED
+
+## bpf_perf_reach
+bpf PROG_LOAD/MAP_CREATE errno=13
+perf SW/HW ok
+
+## kgsl_sparse_gpuobj_reach
+CREATE flags=0x12 id=11
+zero-struct HIT: 0x40 OK; 0x45 OK; 0x48 errno=524; 0x4b EOPNOTSUPP; 0x50-0x55 524; 0x58 OK
+bad-ptr 0x8: EFAULT on 0x40-0x4c, 0x50-0x55, 0x57-0x58
+named: 0x45 GPUOBJ_ALLOC? ret=0; 0x4d/0x4e ENOTTY
+KERNEL SURVIVED
+
+## binder_offset_oversize
+BINDER_VERSION proto=8
+WRITE_READ oversize-offset ret=0 wcons=68 rcons=8
+KERNEL SURVIVED
+
+## ghostlock_edeadlk_detect
+CMP ret=-1 errno=35
+WAIT ret=-1 errno=110
+SURVIVED
+
+## ghostlock_edeadlk_adjtimex_only
+CMP errno=35; WAIT 110; adjtimex errno=1
+SURVIVED
+
+## ghostlock_uaf_reclaim_consumer
+CMP errno=35; WAIT 110; adjtimex errno=1
+then adb drop; bootreason=kernel_panic,null

@@ -1,4 +1,4 @@
-> **文档类型**: 流程记录 | **状态**: ✅ 有效 | **范围**: **只读提取** 分区镜像（分析用） | **最后更新**: 2026-07-25
+> **文档类型**: 流程记录 | **状态**: ✅ 有效 | **范围**: **只读提取** 分区镜像（分析用） | **最后更新**: 2026-08-13
 
 # EDL — 系统/启动分区镜像提取
 
@@ -152,6 +152,7 @@ cp stock_read/boot_a.img leaf5/boot_a.bin   # gitignore，不入库
 |------|------|
 | ~2025-12 | 曾误放 Boox P6 Pro 全套 Root/Magisk 指南与 printgpt 原始输出 |
 | 2026-07-25 | 整理为 **只读提取** 流程；删除改镜像 / Magisk / 解锁写盘内容；P6 Pro printgpt 仅作样例归档 |
+| 2026-08-13 | 只读 `r boot_b`（活动槽 `_b` / `#38`）。loader=`palma2pro.bin`，eMMC。产物 `stock_read/boot_b.img`；banner = `g77c132eccfab #38`。随后 `reset`。ELF：`../raw/slotb_38/vmlinux.elf`。 |
 
 ---
 

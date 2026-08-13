@@ -1,5 +1,5 @@
-> **路由**: GhostLock 真·栈 UAF（pi_blocked_on）| **状态**: ⛔ 终局（shell 链写原语关闭）  
-> **权威**: 本节点 + `PROCESS_LOG` §51–§53
+> **路由**: GhostLock 真·栈 UAF（pi_blocked_on）| **状态**: ⛔ 写链（#245）；⚠️ 设备已切 `#38`/`_b`  
+> **权威**: 本节点 + `PROCESS_LOG` §51–§53、§59
 
 # 10 — CVE-2026-43499 全链路与 Leaf5 终局
 
@@ -85,12 +85,12 @@ root        ❌ 无 uid=0 证据
 ## 6. 下游
 
 - **本链（ashmem fops 写矩阵）无** 开放实验；勿重打 SHIFT/shape 同行。
-- **其它提权方向**（换写 gadget/consumer、oracle、BPF、授权刷写等）：见  
-  [`analysis/POST_B_ALTERNATIVES.md`](analysis/POST_B_ALTERNATIVES.md)。  
-- **第二条件联用 + 独立 LPE CVE 清单**（每项思路与静态闸门）：见  
-  [`analysis/SECOND_BUG_AND_CVE_CANDIDATES.md`](analysis/SECOND_BUG_AND_CVE_CANDIDATES.md)。  
-  仅当出现 **新 [BIN] 理论** 时再开探针节点。
-- 确定性 root：用户授权的 Magisk/刷写/EDL 写。
+- **2026-08-13**: `#38` ELF 已从 EDL `boot_b` 重建。UAF 仍 live。真 shape0 + `parent=0x4141` ×8 **存活** → `rb_erase` 仍不可达。`LOCK_OWNER_CRASH`/`INC_UTS`：**owner-follow ±1 也未到达**。`TASK_USAGE_OFF` CORRECTED **0x68**。ashmem open EACCES。见 [`analysis/VERIFY_2026-08-13_slotb.md`](analysis/VERIFY_2026-08-13_slotb.md) §10.5。
+- **其它提权方向**（换写 gadget/consumer、oracle、BPF）：见  
+  [`analysis/POST_B_ALTERNATIVES.md`](analysis/POST_B_ALTERNATIVES.md)。刷写已排除。
+- **第二条件联用 + 独立 LPE CVE 清单**：见  
+  [`analysis/SECOND_BUG_AND_CVE_CANDIDATES.md`](analysis/SECOND_BUG_AND_CVE_CANDIDATES.md)。
+- **开放待办 T1–T6**（`LOCK_PI` / wakeup erase / KGSL / Binder gap）：见 VERIFY §11。
 
 ## 7. 文件
 
@@ -101,11 +101,17 @@ root        ❌ 无 uid=0 证据
 | `analysis/POST_B_ALTERNATIVES.md` | 终局 B 后可选方向（研究） |
 | `analysis/SECOND_BUG_AND_CVE_CANDIDATES.md` | 多洞联用清单 + 独立 CVE 闸门 |
 | `analysis/VERIFY_2026-07-26_second_bug.md` | S1/Binder/KGSL 第一轮验证 |
+| `analysis/VERIFY_2026-08-13_slotb.md` | #38 slot `_b` 闸门 + 复测 |
 | `analysis/PI_STORE_CONSUMERS.md` | PI store / consumer / UTS oracle 静态 |
 | `analysis/CHAIN_MATRIX.md` | popsicle vs Leaf5 对照 |
 | `probes/ghostlock_edeadlk_*.c` | EDEADLK / panic 对照 |
 | `probes/ghostlock_uts_oracle.c` | 非 CFI uname oracle + 多 consumer |
 | `probes/bpf_perf_reach.c` | BPF/perf shell 可达性 |
+| `probes/slotb_surface_reach.c` | #38 native 触达 |
+| `probes/binder_offset_oversize.c` | 46740 风格最小事务 |
+| `probes/kgsl_sparse_gpuobj_reach.c` | 64-bit sparse/gpuobj ioctl 面 |
+| `probes/ghostlock_shape0_parent_crash.c` | 真 shape0 + parent=0x4141（zero-page lock 对照会误崩） |
+| `../../../raw/slotb_38/vmlinux.elf` | #38 ELF |
 | `analysis/RESULTS_2026-07-26_oracle_bpf.md` | BPF❌ perf✅；stage zero-lock panic |
 | `analysis/RESULTS_2026-07-26_uts_matrix.md` | exploit UTS 矩阵 hit=0；stdio fix；fops 对照 22 |
 | `analysis/AARCH64_ANALYSIS_2026-07-26.md` | aarch64 反汇编追踪、crash probe 设计与终局结论 |

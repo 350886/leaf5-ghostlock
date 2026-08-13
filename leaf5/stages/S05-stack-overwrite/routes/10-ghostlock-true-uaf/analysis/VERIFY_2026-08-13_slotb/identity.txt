@@ -1,0 +1,19 @@
+# Slot _b / #38 identity (2026-08-13)
+
+serial=ac340d06
+slot=_b
+uname=Linux localhost 4.19.157-perf-g77c132eccfab-dirty #38 SMP PREEMPT Tue Jul 28 10:48:06 CST 2026 aarch64 Toybox
+version=Linux version 4.19.157-perf-g77c132eccfab-dirty (onyx@onyxUbuntu) (clang version 10.0.7 for Android NDK, GNU ld (binutils-2.27-bd24d23f) 2.27.0.20170315) #38 SMP PREEMPT Tue Jul 28 10:48:06 CST 2026
+kheaders_uts=4.19.157-perf-g77c132eccfab-dirty
+kheaders_compile=#37 SMP PREEMPT Tue Jul 28 10:42:20 CST 2026
+fingerprint=ONYX/TabBoox/TabBoox:13/TKQ1.230615.001/GV2.027.SQ83A:user/release-keys
+display_id=2026-08-03_11-15_4.2-rel_0803_3c19bf624
+security_patch=2026-04-01
+selinux=Enforcing
+uid=2000 shell CapEff=0
+gpu_model=Adreno619v1
+gles_driver=com.qualcomm.qti.gpudrivers.lito.api30
+force_sw_gles=1
+
+# Old analysis target (MISMATCH — do not use leaf5/raw/vmlinux*)
+old=4.19.157-perf-g3d47a6619220-dirty #245 (slot likely _a)

@@ -1,4 +1,4 @@
-> **阶段**: S04 | **状态**: ✅ 完成 | **最后更新**: 2026-07-26
+> **阶段**: S04 | **状态**: ✅ #245；✅ #38 复测 EDEADLK | **最后更新**: 2026-08-13
 
 # S04 — GhostLock 触发（EDEADLK 边）
 
@@ -24,3 +24,5 @@
 
 ## 下游
 → S05 路由 10：reclaim 悬空 waiter 槽 → 尝试 PI walk 写；旧「stale 窗口内 CFU 盖 task」模型已关闭。
+
+**2026-08-13 `#38`**: `ghostlock_edeadlk_detect` 仍 `errno=35`；UAF consumer 仍 `kernel_panic,null`。见路由 10 VERIFY。

@@ -1,6 +1,8 @@
-> **阶段**: S01 | **状态**: ✅ 完成 | **最后更新**: 2026-07-25
+> **阶段**: S01 | **状态**: ✅ #245；⚠️ #38 ELF 已建 | **最后更新**: 2026-08-13
 
 # S01 — 偏移提取与栈布局
+
+**2026-08-13**: 活动槽 `_b` ELF 在 [`../../raw/slotb_38/vmlinux.elf`](../../raw/slotb_38/vmlinux.elf)。GhostLock 核心 VA 与 #245 **相同**；`ashmem_misc`/`kgsl`/`binder` 有漂移。`TASK_USAGE_OFF` **CORRECTED 0x28→0x68** [BIN]。详见路由 10 [`VERIFY_2026-08-13_slotb.md`](../S05-stack-overwrite/routes/10-ghostlock-true-uaf/analysis/VERIFY_2026-08-13_slotb.md)。下表终局数字仍是 **#245 / WAIT 路径旧模型** 的历史记录；GhostLock 路径以路由 10 为准（waiter 0x50，`task` @ stack_top−0x168，SHIFT=+15）。
 
 ## 目标
 从 vmlinux 反汇编得到 `rt_mutex_waiter` / `task_struct` / pipe 等偏移，并计算 GhostLock waiter 与各 CFU 的绝对栈位置。

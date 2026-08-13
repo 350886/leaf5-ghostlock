@@ -1,4 +1,4 @@
-> **文档类型**: 过程文档（操作流水） | **状态**: ✅ 有效（历史记录） | **最后更新**: 2026-07-26
+> **文档类型**: 过程文档（操作流水） | **状态**: ✅ 有效（历史记录） | **最后更新**: 2026-08-13
 
 # Leaf5 分析过程流水（2026-07-24）
 
@@ -1035,3 +1035,52 @@ rt_mutex_adjust_prio_chain @ 0xffffff80080c9eb0:
 3. 用户授权 Magisk/刷写路径
 
 **文档**: `AARCH64_ANALYSIS_2026-07-26.md` 含完整反汇编追踪。
+
+### 59. Slot `_b` / kernel #38 复测（2026-08-13）
+
+**闸门失败（偏移）**: 同机 `ac340d06` 现跑 `4.19.157-perf-g77c132eccfab-dirty` **#38**（Jul 28），slot=`_b`。仓库 `vmlinux`/`target.h` 仍是 `#245` `g3d47a6619220`。用户排除刷写；未 EDL 读 `boot_b`。
+
+**CONFIG**: 新 `config.gz` vs `raw/config.gz` 关键项 **0 变化**。kheaders UTS=`g77c132eccfab` `#37`（vs uname `#38`）。
+
+**无偏移探针（#38）**:
+
+| 探针 | 结果 |
+|------|------|
+| `ghostlock_edeadlk_detect` | `CMP errno=35` WAIT `110` 存活 |
+| `ghostlock_edeadlk_adjtimex_only` | 同上 + adjtimex EPERM **存活** |
+| `ghostlock_uaf_reclaim_consumer` | adjtimex 后掉线；`bootreason=kernel_panic,null` → **UAF 仍 live** |
+| `slotb_surface_reach` | kgsl/binder/uhid OK；**ashmem native open errno=13**；kgsl ctx 0x12 OK |
+| `bpf_perf_reach` | bpf 13；perf SW/HW OK |
+| `kgsl_sparse_gpuobj_reach` | 多 nr EFAULT；0x48/0x50–55 errno 524；0x4d/4e ENOTTY |
+| `binder_offset_oversize` | proto=8 存活；**未证** 46740 补丁 |
+
+**仪器 CORRECTED（#245 代码，未在 #38 跑 exploit）**: `PSELECT_LOCK_SHAPE=0` 曾被 `WRITE_SHAPE_DEFAULT=1` 改成 shape1，parent-crash 不生效。已改 `exploit/src/fops.c`。
+
+**文档**: `stages/.../10/.../analysis/VERIFY_2026-08-13_slotb.md`
+
+### 60. EDL 只读 boot_b + #38 ELF + 真 shape0（2026-08-13）
+
+**只读**: `edl.py --loader=palma2pro.bin --memory=eMMC r boot_b` → `leaf5/edl/stock_read/boot_b.img`（96MB）。banner = uname `#38` `g77c132eccfab`。`reset` 回系统，无写分区。
+
+**ELF**: `leaf5/raw/slotb_38/vmlinux.elf` · 121896 sym · `_text` 同 `0xffffff8008080000`。
+
+**对照**: GhostLock 核心 VA **不变**（`remove_waiter` / `adjust_prio_chain` / `do_futex` / `init_uts_ns`）。`str xzr,[sp_el0,#0x8d0]` 仍在。`ashmem_misc` +0x140；`kgsl_ioctl`/`binder_transaction` 漂移。
+
+**真 shape0 parent-crash**（`fops.c` 已修覆盖；`LOCK_SHAPE=0` + `WRITE_SHAPE=0` + `PARENT_CRASH=1` + spray lock）8 轮：`out5=0x4141…`，`sched_setattr success=1`，**uts hit=0，设备存活**。
+
+**结论**: 仪器 bug 是真的，但修好后 **`rb_erase` 仍走不到**。写链在 #38 上与终局 B 一致。empty_zero_page lock 对照也会 panic，不能单独当 erase 证据。
+
+### 61. owner-follow ±1 哨兵（2026-08-13）
+
+**[BIN]** `task->usage` = **+0x68**（非 target.h 旧 0x28）。`target.h` 已 CORRECTED。
+
+| env | 预期若走到 follow | 设备 |
+|-----|-------------------|------|
+| `LOCK_OWNER_CRASH=1` owner=0x41 | panic @ inc | **存活** |
+| `LOCK_OWNER_INC_UTS=1` + sampler | `uname` 离开 Linux | **hit=0** |
+
+`sched_setattr` 不进入 `0xa080` 之后的 erase / owner-follow。±1 不是可用写原语。  
+代码：`util.c` `lock_owner_word` / `start_uts_sampler`。
+
+**开放待办**（VERIFY §11）：T1 `LOCK_PI` 入口；T2 `mark_wakeup_next_waiter`；T3 第二轮 waiter；T4 KGSL 独立；T5/T6 Binder patch-gap。刷写排除。
+

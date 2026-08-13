@@ -188,4 +188,4 @@ boot / vmlinux 来源：[`edl/README.md`](edl/README.md)（只读 dump）→ `bo
 
 ---
 
-*最后更新: 2026-07-26 — 整条利用链分步效果与终局 B 写入本 README；旧「~70% / KSP0−0x2B0」总览作废*
+*最后更新: 2026-08-13 — 设备切 slot `_b` / `#38` `g77c132eccfab`；#245 矩阵仍是写链终局。复测见 [VERIFY_2026-08-13_slotb](stages/S05-stack-overwrite/routes/10-ghostlock-true-uaf/analysis/VERIFY_2026-08-13_slotb.md)。旧「~70% / KSP0−0x2B0」总览作废*

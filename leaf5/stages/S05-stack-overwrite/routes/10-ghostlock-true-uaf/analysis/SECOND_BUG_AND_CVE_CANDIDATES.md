@@ -501,6 +501,13 @@ GhostLock 只当 leak（S02）
 | Q5 CVE-2024-46740 | surface+触达；**未证明已修** → 待最小触发 | 2026-07-26 |
 | Q5 CVE-2023-20938 | buffer_release 在；校验合入未证 | 2026-07-26 |
 | U1 perfservice | `service list` 可见 | 2026-07-26 |
+| **#38 G1 EDEADLK** | `CMP errno=35` 仍在 | 2026-08-13 |
+| **#38 G2 UAF** | 0x41+consumer → `kernel_panic,null` | 2026-08-13 |
+| **#38 S1 ashmem** | native open **EACCES**（CORRECTED） | 2026-08-13 |
+| **#38 Q1 ioctl** | ctx OK；gpuobj? 0x45 ret=0；sparse 类 524；多 nr EFAULT | 2026-08-13 |
+| **#38 Q5 46740** | 最小事务存活；补丁未证 | 2026-08-13 |
+| **#38 Q2 固件** | Adreno619；fw 分区 shell 拒 | 2026-08-13 |
+| **#38 写几何** | ELF 已建；`rb_erase`/owner-follow 均未到 | 2026-08-13 |
 
 ---
 

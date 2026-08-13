@@ -1,9 +1,15 @@
-> **阶段**: S00 | **状态**: ✅ 完成 | **最后更新**: 2026-07-25
+> **阶段**: S00 | **状态**: ⚠️ runtime 已切槽 | **最后更新**: 2026-08-13
 
 # S00 — 设备画像与数据采集
 
 ## 目标
 建立 Leaf5 运行时指纹：内核版本、CONFIG、安全面、分区/接口、与 boot 镜像一致性。
+
+## 2026-08-13 CORRECTED
+
+同机 `ac340d06` 现为 slot **`_b`**，`uname` = `4.19.157-perf-g77c132eccfab-dirty` **#38**。  
+`leaf5/raw/vmlinux*` 与 `boot_a.bin` 仍对齐 **#245** `g3d47a6619220` → **禁止**当本机偏移真源。  
+新 config / kheaders / 触达矩阵：[`../S05-stack-overwrite/routes/10-ghostlock-true-uaf/analysis/VERIFY_2026-08-13_slotb.md`](../S05-stack-overwrite/routes/10-ghostlock-true-uaf/analysis/VERIFY_2026-08-13_slotb.md)。
 
 ## 代码
 
