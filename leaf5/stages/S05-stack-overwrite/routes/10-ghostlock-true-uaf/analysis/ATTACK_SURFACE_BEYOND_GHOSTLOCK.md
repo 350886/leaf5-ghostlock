@@ -84,3 +84,28 @@
 | 日期 | 变更 |
 |------|------|
 | 2026-09-03 | 初版：设备攻击面实测 + 加宽矩阵（KGSL/ION/qce/EPDC/Onyx 服务/确定性 H3） |
+| 2026-09-03 | §8：步骤执行记录（KGSL 复测矩阵 / Onyx Context+ 探针 / 设备重启警示） |
+
+---
+
+## 8. 2026-09-03 步骤执行记录
+
+### 8.1 KGSL 64-bit 触达复测（#38，`kgsl_sparse_gpuobj_reach`）
+- CREATE ctx `flags=0x12` ✅ id=7。
+- nr 0x40–0x58 × sz 16–64 全扫：
+  - 零结构返回 0：**0x40 / 0x45 / 0x58**（handler 直接放行 → 需查是否弱校验）；
+  - 坏指针 EFAULT：0x41–0x4c、0x50–0x55、0x57、0x58 → **这些均到 copy_from_user**；
+  - 其余：0x4b=EOPNOTSUPP、0x4d/0x4e=ENOTTY、0x48/0x50–0x55 多数 `errno=524`（kgsl 自定义负值）。
+- 结论：**0x40–0x58 区间大面可达且多到 CFU**，是 KGSL 逐 handler patch-gap 的靶区。
+- **⚠️ 设备重启**：探针后 adb 掉线（疑似 GPU/系统复位或无关挂死）；后续操作注意先保活 adb、单轮小步。
+
+### 8.2 KGSL 驱动世代（vmlinux 字符串）
+`drivers/gpu/msm/` 下 `adreno_a6xx.c`/`adreno_dispatch.c`/`kgsl_snapshot.c`/`kgsl_gmu_core.c` 等 → **旧版 MSM kgsl**（非新架构），Adreno 619。后续 public kgsl CVE 需对齐这一代文件结构做 binary patch-gap（先取 QC fix diff）。
+
+### 8.3 Onyx binder Context+（#38）
+- **SELinux 放行**：shell 直接 `service call onyx_device_service/oec_service <code>` 无 SecurityException → shell→(onyx/system_server) binder 通道开。
+- 空参扫描 code 1–40：两服务均有大量返回非空 Parcel 的方法（疑 getter/弱参校验），其中 oec_service code 24→2、32→0x1e、38→0x0a 等；**语义待方法名**。
+- 宿主排查：com.onyx（kcb，priv-app，117MB）与 com.onyx.android.ksync（system-app，120MB）的 dex **均无** `android/onyx/services` / `IOnyxDeviceService` / `IOECService` 字符串 → 两服务**不在**这两个 APK；/system/framework 无 onyx jar。宿主疑为 **system_server**（services.jar 内定制）或 native daemon，**待定位**。
+- 下一步：拉 `services.jar`/`framework.jar` 或内核侧查 binder owner；定位后用 apktool 解宿主，map 事务码→方法，找 command/file/update 类方法提 system。
+- 注：APK 大（117–120MB），adb pull 直接拉 /system 失败；先 `cp` 到 `/data/local/tmp` 再 pull 可行。
+
