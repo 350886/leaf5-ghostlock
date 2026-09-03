@@ -167,3 +167,12 @@
 - 下一步：拉 `services.jar`/`framework.jar` 或内核侧查 binder owner；定位后用 apktool 解宿主，map 事务码→方法，找 command/file/update 类方法提 system。
 - 注：APK 大（117–120MB），adb pull 直接拉 /system 失败；先 `cp` 到 `/data/local/tmp` 再 pull 可行。
 
+
+### 8.9 「假设 fork ≥1.2.68」实测（2026-09-03，CVE-2022-25845 形态）
+在真实 sink（oec_service updateSystemConfigMap → parseObject(json, OnyxSystemConfig)）上按 ≥1.2.68 假设打 25845 式载荷，logcat(pid 1663) 结果：
+| 载荷 | 结果 |
+|------|------|
+| map 值 `@type com.sun.rowset.JdbcRowSetImpl` + `dataSourceName=rmi://127.0.0.1:9` | `autoType is not support. JdbcRowSetImpl`（checkAutoType:340 / MapDeserializer）|
+| 双 `@type` `AutoCloseable`→`JdbcRowSetImpl` | 仍被拒（checkAutoType 于 JavaBeanDeserializer.deserialze:674）→ 进入 bean 路径但仍 deny |
+- **无** 到 127.0.0.1:9 的连接/实例化（无 ConnectException）。
+- 推论：25845 的 expectClass-接口绕过需值字段声明类型为 gadget 实现的接口（含 accept 条件）；本 sink map 值为 `Object`，`JdbcRowSetImpl`/`TemplatesImpl` 均在 deny，双 `@type` 未形成 bypass → **即便版本 1.2.68+ 该入口也不触发**；canonical gadget（xbean JndiConverter 等）在 ART 不存在。
