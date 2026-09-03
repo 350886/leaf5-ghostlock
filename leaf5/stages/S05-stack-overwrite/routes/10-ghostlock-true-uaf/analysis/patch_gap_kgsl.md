@@ -28,3 +28,26 @@ nr: 0x02,0x07,0x10,0x13–0x17,0x20–0x21,0x24,0x2f,0x32–0x37,0x3c–0x3d,
 ## 5. 建议下一步（二选一）
 1. 重建 nr→handler 表（Image 直读，本地纯静态）→ 锁定具体函数再 hunt；
 2. 定向实机探针：对 0x40/0x45/0x58 等「零结构即 OK/弱校验」handler 做最小参数审计。
+
+## 6. nr→handler 映射（✅ 2026-09-03，44 项全中）
+方法：raw `vmlinux_extracted_38` 内 rela 逐 nr 按签名 `(r_offset, type=0x403)` 定位，addend=链接地址（slide0→运行时），与符号表精确匹配。
+| nr | handler | | nr | handler |
+|----|---------|-|----|---------|
+| 0x02 | device_getproperty | | 0x07 | device_waittimestamp_ctxtid |
+| 0x10 | rb_issueibcmds | | 0x13/0x14 | drawctxt_create/destroy |
+| 0x15/0x20 | map_user_mem | | 0x16/0x17 | cmdstream_readtimestamp/freememontimestamp |
+| 0x21 | sharedmem_free | | 0x24 | sharedmem_flush_cache |
+| 0x2f | gpumem_alloc | | 0x32 | device_setproperty |
+| 0x33 | timestamp_event | | 0x34–0x37 | gpumem_alloc_id/free_id/get_info/sync_cache |
+| 0x3c | gpumem_sync_cache_bulk | | 0x3d | submit_commands |
+| 0x40 | syncsource_create | | 0x41 | syncsource_destroy |
+| 0x42 | syncsource_create_fence | | 0x43 | syncsource_signal_fence |
+| 0x45 | gpuobj_alloc | | 0x46 | gpuobj_free |
+| 0x47 | gpuobj_info | | 0x48 | gpuobj_import |
+| 0x49 | gpuobj_sync | | 0x4a | gpu_command |
+| 0x4c | gpuobj_set_info | | 0x50/0x51 | sparse_phys_alloc/free |
+| 0x52/0x53 | sparse_virt_alloc/free | | 0x54 | sparse_bind |
+| 0x55 | gpu_sparse_command | | 0x57 | gpu_aux_command |
+| 0x58 | timeline_create | | 0x59–0x5d | timeline_wait/query/signal/fence_get/destroy |
+- 实机可达核心族：**syncsource / gpuobj / sparse / timeline / gpumem / submit**。
+- **先审三个低校验**：0x40(syncsource_create)、0x45(gpuobj_alloc)、0x58(timeline_create) —— 零结构也返回 0。
