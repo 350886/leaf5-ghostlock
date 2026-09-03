@@ -85,6 +85,23 @@
 |------|------|
 | 2026-09-03 | 初版：设备攻击面实测 + 加宽矩阵（KGSL/ION/qce/EPDC/Onyx 服务/确定性 H3） |
 | 2026-09-03 | §8：步骤执行记录（KGSL 复测矩阵 / Onyx Context+ 探针 / 设备重启警示） |
+| 2026-09-03 | §8.4：Onyx 服务宿主=system_server；确认文件/属性读写原语；/vendor ro+verity enforcing；存储路径待解 |
+
+---
+
+## 8.4 Onyx binder 服务深挖（2026-09-03 续）
+
+- **宿主定位**：`onyx_device_service`/`oec_service` 的 AIDL 类在 **framework.jar**（boot classpath）→ 运行在 **system_server**（uid system / `system_server` 域）。实现：`android/onyx/services/OnyxDeviceService`（super IOnyxDeviceService$Stub）、`android/onyx/optimization/OECService`（super IOECService$Stub）。com.onyx/ksync APK 均无此接口（已核）。
+- **无 exec 原语**：两个实现类无 Runtime/ProcessBuilder/shell → 属于「设备/e-ink 配置管理」服务。
+- **已确认原语（shell→system_server）**：
+  - `getSystemProperties`(0x21)/`setSystemProperties`(0x20)：属性读 OK（返回 "Leaf5"）；写双串返回 -74「Not a data message」，参数格式待修。
+  - `setSystemConfig`(0x4)/`getSystemConfig`(0x3)/`deleteSystemConfig`(0x5)/`setSystemConfigFilePermission`(0x2a)：**写→1、读回内容一致** → system_server 域**私有配置文件写/读/删/chmod**。
+  - 事务码来自 `IOnyxDeviceService$Stub` TRANSACTION_*（setSystemConfig=4, getSystemConfig=3, deleteSystemConfig=5, chmod=0x2a, setSystemProperties=0x20, checkPassword=0x24, rebootFlashDeviceSn=0x26）。
+- **存储路径未定**：`systemConfigPath = DeviceConfig.getSystemConfigPrefix() + key`；源码默认前缀 `'/vendor/'`（DeviceConfig.smali 构造），但 **/vendor ro + verity enforcing** → 写入却成功 ⇒ **运行时前缀非 '/vendor/'**（prefix 由本地配置反序列化 setter 覆盖，目录可能位于 /data/…）。实际落点未解析。
+- **评估**：这是 system_server 域的一个**持久化写原语**，但要到 root 还需「写→被更高权消费/执行」链路或路径逃逸；Onyx 后续会从本地载入这些 config（LoadDeviceConfigFromLocalAction）。**价值高但未闭环**。
+- **决定性捷径仍在 H3**（bootloader orange+unlocked）：如目标仅是 root 设备，刷写路径确定性最高。
+- 下一步（若要继续 Context+）：解析 DeviceConfig 运行时载入（LocalAction/反序列化）确定 prefix 目录 → 检查 FileUtils.writeContentToFile 是否路径穿越 → 找 config 消费者（system_server/Onxy app/init）是否执行内容。
+
 
 ---
 
