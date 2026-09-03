@@ -511,9 +511,33 @@ GhostLock 只当 leak（S02）
 
 ---
 
+## 7.1 2026-09-03 补充：GitHub 生态复核 + NebuSec Ndays 组合候选闸门
+
+> 目的：验证「GitHub 上其它 CVE 是否可组合/替代 GhostLock」。结论先行：
+> **在线全链成功样本全在 5.x/6.x GKI**（popsicle 6.12、Root-My-*、GhostLock-5.10 等），机制与 Leaf5 相同链；
+> **没有 4.19 qcom（Onyx sm6350）公开成功路径**。yijiacloud/4.19-k40 = 本仓库 K40 参考在线版（无 root 证据）；
+> aresin(4.14) 等低内核仓库为半成品模板（target.h 0xTODO，预期行为写「panic 重启」），不可用。
+
+### 新增候选闸门（两跳即可判，均已 ❌）
+
+| CVE | 机制 | 上游引入/修复 | Leaf5 4.19 判定 | 证据 |
+|-----|------|---------------|-----------------|------|
+| **CVE-2026-43074** (NebuSec Ndays) | eventpoll `ep_free()` 直接 kfree，RCU reader(`ep_get_upwards_depth_proc`) 仍可用 → struct UAF | fix 5.15.209/6.1.180/6.6.136/…（**≥5.15 分支**；4.19 不在清单） | ❌ 不适用 | #38 ELF：`ep_get_upwards_depth_proc` **ABSENT**；只有 4.19 老式 `ep_loop_check_proc`（mutex+visited，非 RCU reader） |
+| **CVE-2026-64560** (NebuSec Ndays) | posix CPU timer × 非 leader exec()：`lock_task_sighand()` 见 NULL 早退 → 已入队 timerqueue 的 `k_itimer` 被释放 UAF | **5.7 引入**；fix 5.10.262/5.15.213/…（4.19 在引入前） | ❌ 不适用 | #38 ELF：`timer_lock_sighand` **ABSENT**；4.19 保留 2010 老 workaround(e0a70217107e 系)路径 |
+| **CVE-2024-46740** (binder offsets overwrite UAF) | 事务原始数据越界写 offsets → unwinding 用坏 offsets → 任意 node 提前释放 | 影响 ~5.4.226+/5.10.157+/5.15.17+；**4.19 不在清单**，但 vendor 回移过 binder_alloc 助手 | ⚠️ 不能仅凭版本关 | #38 binder 带 `binder_alloc_copy_*`/`binder_alloc_do_buffer_copy` 等 5.x 回移 → 需 binary patch-gap（见 P0） |
+| **CVE-2023-20938** (binder UAF) | binder 事务路径 ref/UAF | Android 4.19 common 分支有修复 | ⚠️ 同上 | VERIFY 已记：buffer_release 在；校验合入未证 |
+
+### 复核结论
+1. **组合价值不变**：优先仍是 S1/S2/S5/S7（吃 GhostLock 自身）+ P0 独立（KGSL sparse/gpuobj、Binder patch-gap）；43074/64560 不构成新组合。
+2. **“新内核有 root”≠“4.19 有洞可搬”**：GitHub 上所有 full-chain 都在 5.15+；对 4.19 只能逐 CVE binary patch-gap，没有「开箱可用」公开 PoC。
+3. 新增候选（2026 Ndays）已尽调，无一命中 4.19 → 收敛研究预算到本清单 P0–P2，勿外扩扫号。
+
+---
+
 ## 8. 修订记录
 
 | 日期 | 变更 |
 |------|------|
 | 2026-07-26 | 初版：联用清单（思路）+ 独立 CVE 闸门表 + P0–P3 工作包 |
 | 2026-07-26 | 链入 VERIFY：S1/Binder/KGSL 第一轮静态+触达 |
+| 2026-09-03 | §7.1：GitHub 生态复核；43074/64560 判 ❌（版本+符号）；46740/20938 保持 ⚠️ patch-gap 待办 |
