@@ -120,6 +120,15 @@
 - **结论**：该 fastjson sink 存在但 **autoType 关闭 + deny 强制**，常见 `@type` RCE（TemplatesImpl）及 1.2.47 式两步绕过均被挡；且 ART 上 `com.sun...xalan...TemplatesImpl` 类基本不存在 → 即便绕过也难落地。其余路径（写文件后被解析）同 fork、autoType 默认同关。
 - **判定**：fastjson 作为 RCE 入口**当前不成立**（需能过 checkAutoType 的版本级 bypass + Android 可用 gadget，未知且成本高）；即使成立也仅 system_server RCE（非 root），仍链内核洞。
 
+### 8.7 fastjson 版本指纹 + CVE-2026-16723 判定（2026-09-03 续）
+- **版本**：`com.onyx.internal.fastjson` ≈ **fastjson 1.2.6x（<1.2.68）**。依据：`ParserConfig` **无 `safeMode` 字段**（SafeMode 1.2.68 起引入）、`checkAutoType(String,Class,int)` 3 参形态、denyList 为 hash `[J]`、报错文案 `autoType is not support`。无内置版本号字符串。
+- **CVE-2026-16723（alibaba wiki：fastjson 1.2.68–1.2.83，默认配置 AutoType OFF+SafeMode OFF 即可 RCE，无需 gadget）**：
+  1. **版本不适用**：本机 fork <1.2.68（affected 范围外；advisory 明确 ≤1.2.60 及 1.2.61–1.2.67 无该代码路径）；
+  2. **部署不适用**：该洞前提为 **Spring Boot 可执行 fat-jar（java -jar）**；Leaf5 是 **ART + bootclasspath**，不满足触发条件；
+  → **CVE-2026-16723 在本机不可用**。
+- 若未来拿到确切版本号再复核：升级/加固路径 = 1.2.84 / SafeMode / fastjson2；但本机为 ROM 内置，改不了，仅作研究记录。
+
+
 
 
 
