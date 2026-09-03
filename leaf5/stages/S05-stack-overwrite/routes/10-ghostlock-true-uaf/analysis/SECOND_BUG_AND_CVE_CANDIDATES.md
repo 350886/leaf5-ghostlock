@@ -539,7 +539,12 @@ GhostLock 只当 leak（S02）
 | CVE | fix 形态 | #38 反汇编证据 | 判定 |
 |-----|----------|----------------|------|
 | **CVE-2023-20938 / 21255** | root cause = release 的 overloaded-zero（`is_failure && failed_at ? failed_at : off_start+offsets`，commit 44d8047f1d87 引入）；完整修复 1ca1130ec62d 改为调用方传 `off_end_offset` | `binder_transaction_buffer_release`@0xffffff8008dd32f8：循环端 = `is_failure(w26 bit0) ? 传入param(x22) : off_start+offsets_size`（0x…dd348c `tbnz w26,#0`）。事务 err 路径（0x…dd68f0）传 `x2=buffer_offset, w3=is_failure=1`；当 failed_at=0 ⇒ loop 端=0 ⇒ **0 个对象被清理** | ❌ **不适用**：无 overloaded-zero 语义；「未处理对象被误清」不可能 |
-| **CVE-2024-46740** | 在逐对象 raw-data gap copy 的守卫上补 `object_offset > tr->data_size`（fixes 6d98eb95b450 "avoid data leakage…"） | #38 存在逐对象拷贝循环：`binder_alloc_copy_user_to_buffer` @0xffffff8008dd5808，前导守卫 `cmp x4,x8 / b.hi err` @0x…dd57ec；但 raw asm 无法确证「上界=tr->data_size」是否在 | ⚠️ **不能凭版本/裸 asm 关闭**；下一步二选一：Ghidra decompile `binder_transaction`，或运行时最小事务（gap 越界 offsets）看返回 binder 错误 vs 内存破坏 |
+| **CVE-2024-46740** | 在逐对象 raw-data gap copy 的守卫上补 `object_offset > tr->data_size`（fixes 6d98eb95b450 "avoid data leakage…"） | #38 存在逐对象拷贝循环：`binder_alloc_copy_user_to_buffer` @0xffffff8008dd5808，前导守卫 `cmp x4,x8 / b.hi err` @0x…dd57ec；**运行时探针未观察任何损坏**（见下） | ⚠️→**倾向已修**（静态守卫 + 实机分级溢出全干净） | 探针 `probes/binder_46740_probe.c`（2026-09-03） |
+
+**CVE-2024-46740 运行时探针（#38，2026-09-03）**：`binder_46740_probe` 向 handle 0 发 `object_offset(0x18/0x40/0x100/0x800/0x2000) > data_size(0x10)` 的 TF_ONE_WAY BC_TRANSACTION，每轮间插零对象控制事务，外加一轮 synchronous(flags=0) 带 alarm 兜底。**结果**：全部轮次 ret=0、进程存活、控制事务正常、servicemanager 健康（229 services）、无 panic/损坏。限制：shell 裸 binder 到 handle 0 的 one-way 读回仅 NOOP+0x7211，无法单独确证事务走到了对象循环 → 该探针为**支撑性证据**，不是独立证明；与静态守卫形态共同支持「已修/不可利用」倾向。确证仍可选：Ghidra decompile `binder_transaction`，或在自有注册服务上复测（可得明确 BR_FAILED_REPLY vs 损坏差异）。
+
+**注意**：旧 `probes/binder_offset_oversize.c` 及初版探针把 `binder_transaction_data` 放在 cmd 后 +8，而内核从 +4 读取（wcons=68 证明），字段全部错位 → 其历史「存活」结果**不能**作为 46740 证据。本次探针已修正为 cmd@0 + tr@4。
+
 
 注：VERIFY 2026-08-13 已记 #38 上 46740「最小事务存活、未崩」——与此处 ⚠️ 一致（未证已修，也未见崩溃）。
 
@@ -554,3 +559,4 @@ GhostLock 只当 leak（S02）
 | 2026-07-26 | 链入 VERIFY：S1/Binder/KGSL 第一轮静态+触达 |
 | 2026-09-03 | §7.1：GitHub 生态复核；43074/64560 判 ❌（版本+符号）；46740/20938 保持 ⚠️ patch-gap 待办 |
 | 2026-09-03 | §7.1.1 Binder patch-gap：20938/21255 判 ❌（release 无 overloaded-zero 语义）；46740 ⚠️ 需 decompile/运行时 |
+| 2026-09-03 | §7.1.1 46740 运行时探针（binder_46740_probe）：分级溢出 0x18–0x2000 全干净、设备健康 → 倾向已修；结论「静态守卫+实机无损坏」 |
