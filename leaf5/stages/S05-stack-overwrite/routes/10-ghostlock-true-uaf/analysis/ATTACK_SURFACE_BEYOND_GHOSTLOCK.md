@@ -110,6 +110,17 @@
   3) Context+ 即便拿到 system_server 代码执行，仍需**内核洞**（shell 已可达 KGSL/binder/ashmem；system_server 额外只开 ION/qce/EPDC/diag 面，而这些面上**暂无已知可用洞**）。
 - 因此 **Context+ 方向对「root」的边际价值有限**；剩余最便宜的一步是 dump res/raw 的 `<symbol>_config` JSON 读回实际 prefix（确认存储目录），但即便确认也只是把「system_server 域写」钉死，不直接产出 root。
 
+### 8.6 fastjson 子分析（2026-09-03）
+- 背景：Onyx framework 用自捆绑 `com.onyx.internal.fastjson`（≈1.2.6x 代，denyList 为 hash `[J`）。
+- **可触达反序列化 sink（实机 logcat 证实，pid=1663 system_server）**：`oec_service` 的 `updateSystemConfigMap(String)`（TRANSACTION 0x3a）→ `FastJSONUtils.parseObject(json, OnyxSystemConfig.class)`，且 `OnyxSystemConfig` 含 `Map configMap` 字段 → 嵌套 `@type` 会进 `MapDeserializer`→`checkAutoType`。
+- **探针结果**：
+  - `@type TemplatesImpl` 直引 → `JSONException: autoType is not support`（拒绝）；
+  - `@type java.lang.Class,val=TemplatesImpl`（第一阶段 class 缓存）→ **无 autoType 拒绝**，但报 `set property error, configMap`（setter NPE）——说明 Class 阶段不被拦；
+  - Class 缓存后再引 TemplatesImpl → 仍 `autoType is not support` ⇒ **两段 class-cache 绕过无效**，deny 仍生效。
+- **结论**：该 fastjson sink 存在但 **autoType 关闭 + deny 强制**，常见 `@type` RCE（TemplatesImpl）及 1.2.47 式两步绕过均被挡；且 ART 上 `com.sun...xalan...TemplatesImpl` 类基本不存在 → 即便绕过也难落地。其余路径（写文件后被解析）同 fork、autoType 默认同关。
+- **判定**：fastjson 作为 RCE 入口**当前不成立**（需能过 checkAutoType 的版本级 bypass + Android 可用 gadget，未知且成本高）；即使成立也仅 system_server RCE（非 root），仍链内核洞。
+
+
 
 
 ---
