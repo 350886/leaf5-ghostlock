@@ -102,6 +102,15 @@
 - **决定性捷径仍在 H3**（bootloader orange+unlocked）：如目标仅是 root 设备，刷写路径确定性最高。
 - 下一步（若要继续 Context+）：解析 DeviceConfig 运行时载入（LocalAction/反序列化）确定 prefix 目录 → 检查 FileUtils.writeContentToFile 是否路径穿越 → 找 config 消费者（system_server/Onxy app/init）是否执行内容。
 
+### 8.5 前缀解析进展与评估（2026-09-03 续二）
+- `DeviceConfig.singleton()` 经 `ConfigLoader.load(DeviceConfig.class,"config")`，运行时字段（含 `systemConfigPrefix`）由 **fastjson 解析的 raw-resource JSON** 覆盖（`getConfigJSONByName` → `Resources.getIdentifier(name,"raw","android")` + `contentOfRawResource`）。即默认 `/vendor/` 只是 fallback；**实际前缀按构建期 raw JSON 决定**，JSON 在 framework/overlay 的 res/raw 里（文件名 ≈ `<symbol>_config`），未直接落 /system 常路径 → 需从 raw resource 侧取。
+- **结论（评估）**：shell→system_server 的持久化写已确认，但
+  1) 目标是**私有 config 存储**（写→读回成立，疑似 /data 下、路径未定）；
+  2) `/data` 下文件不被 init 执行 → 该写本身**不等于 root**；要闭环需「写→system_server 或 Onyx system app 代码执行」或先定路径再做穿越到特权消费文件；
+  3) Context+ 即便拿到 system_server 代码执行，仍需**内核洞**（shell 已可达 KGSL/binder/ashmem；system_server 额外只开 ION/qce/EPDC/diag 面，而这些面上**暂无已知可用洞**）。
+- 因此 **Context+ 方向对「root」的边际价值有限**；剩余最便宜的一步是 dump res/raw 的 `<symbol>_config` JSON 读回实际 prefix（确认存储目录），但即便确认也只是把「system_server 域写」钉死，不直接产出 root。
+
+
 
 ---
 
