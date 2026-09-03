@@ -524,13 +524,25 @@ GhostLock 只当 leak（S02）
 |-----|------|---------------|-----------------|------|
 | **CVE-2026-43074** (NebuSec Ndays) | eventpoll `ep_free()` 直接 kfree，RCU reader(`ep_get_upwards_depth_proc`) 仍可用 → struct UAF | fix 5.15.209/6.1.180/6.6.136/…（**≥5.15 分支**；4.19 不在清单） | ❌ 不适用 | #38 ELF：`ep_get_upwards_depth_proc` **ABSENT**；只有 4.19 老式 `ep_loop_check_proc`（mutex+visited，非 RCU reader） |
 | **CVE-2026-64560** (NebuSec Ndays) | posix CPU timer × 非 leader exec()：`lock_task_sighand()` 见 NULL 早退 → 已入队 timerqueue 的 `k_itimer` 被释放 UAF | **5.7 引入**；fix 5.10.262/5.15.213/…（4.19 在引入前） | ❌ 不适用 | #38 ELF：`timer_lock_sighand` **ABSENT**；4.19 保留 2010 老 workaround(e0a70217107e 系)路径 |
-| **CVE-2024-46740** (binder offsets overwrite UAF) | 事务原始数据越界写 offsets → unwinding 用坏 offsets → 任意 node 提前释放 | 影响 ~5.4.226+/5.10.157+/5.15.17+；**4.19 不在清单**，但 vendor 回移过 binder_alloc 助手 | ⚠️ 不能仅凭版本关 | #38 binder 带 `binder_alloc_copy_*`/`binder_alloc_do_buffer_copy` 等 5.x 回移 → 需 binary patch-gap（见 P0） |
-| **CVE-2023-20938** (binder UAF) | binder 事务路径 ref/UAF | Android 4.19 common 分支有修复 | ⚠️ 同上 | VERIFY 已记：buffer_release 在；校验合入未证 |
+| **CVE-2024-46740** (binder offsets overwrite UAF) | 事务原始数据越界写 offsets → unwinding 用坏 offsets → 任意 node 提前释放 | 影响 ~5.4.226+/5.10.157+/5.15.17+；**4.19 不在清单**，但 vendor 回移过 binder_alloc 助手 | ⚠️ 需进一步判定（见 §7.1.1） | #38 `binder_transaction` 带逐对象 gap-copy（`binder_alloc_copy_user_to_buffer` @0x…dd5808），拷贝前有 `cmp+b.hi` 守卫（0x…dd57ec）——形态疑似已修，需 decompile 或运行时探针坐实 |
+| **CVE-2023-20938** (binder_transaction_buffer_release UAF) | 未对齐 `offsets_size` → `err_bad_offset` 传 `failed_at=0` → 释放「未处理对象」→ refcount 失衡 free binder_node | 影响 GKI 5.4/5.10（引入自 44d8047f1d87 的 overloaded-zero 语义；完整修复=CVE-2023-21255 / android 1ca1130ec62d） | ❌ 不适用 | #38 release 循环端=`is_failure ? 传入offset : off_start+offsets_size`（0x…dd348c `tbnz w26`）；failed_at=0+is_failure ⇒ **不清理任何对象** ⇒ 无 overloaded-zero 语义 |
 
 ### 复核结论
 1. **组合价值不变**：优先仍是 S1/S2/S5/S7（吃 GhostLock 自身）+ P0 独立（KGSL sparse/gpuobj、Binder patch-gap）；43074/64560 不构成新组合。
 2. **“新内核有 root”≠“4.19 有洞可搬”**：GitHub 上所有 full-chain 都在 5.15+；对 4.19 只能逐 CVE binary patch-gap，没有「开箱可用」公开 PoC。
 3. 新增候选（2026 Ndays）已尽调，无一命中 4.19 → 收敛研究预算到本清单 P0–P2，勿外扩扫号。
+
+### 7.1.1 Binder binary patch-gap（#38 ELF，2026-09-03）
+
+方法：精确 fix 形态 + capstone 反汇编（`leaf5/raw/slotb_38/vmlinux.elf`）。
+
+| CVE | fix 形态 | #38 反汇编证据 | 判定 |
+|-----|----------|----------------|------|
+| **CVE-2023-20938 / 21255** | root cause = release 的 overloaded-zero（`is_failure && failed_at ? failed_at : off_start+offsets`，commit 44d8047f1d87 引入）；完整修复 1ca1130ec62d 改为调用方传 `off_end_offset` | `binder_transaction_buffer_release`@0xffffff8008dd32f8：循环端 = `is_failure(w26 bit0) ? 传入param(x22) : off_start+offsets_size`（0x…dd348c `tbnz w26,#0`）。事务 err 路径（0x…dd68f0）传 `x2=buffer_offset, w3=is_failure=1`；当 failed_at=0 ⇒ loop 端=0 ⇒ **0 个对象被清理** | ❌ **不适用**：无 overloaded-zero 语义；「未处理对象被误清」不可能 |
+| **CVE-2024-46740** | 在逐对象 raw-data gap copy 的守卫上补 `object_offset > tr->data_size`（fixes 6d98eb95b450 "avoid data leakage…"） | #38 存在逐对象拷贝循环：`binder_alloc_copy_user_to_buffer` @0xffffff8008dd5808，前导守卫 `cmp x4,x8 / b.hi err` @0x…dd57ec；但 raw asm 无法确证「上界=tr->data_size」是否在 | ⚠️ **不能凭版本/裸 asm 关闭**；下一步二选一：Ghidra decompile `binder_transaction`，或运行时最小事务（gap 越界 offsets）看返回 binder 错误 vs 内存破坏 |
+
+注：VERIFY 2026-08-13 已记 #38 上 46740「最小事务存活、未崩」——与此处 ⚠️ 一致（未证已修，也未见崩溃）。
+
 
 ---
 
@@ -541,3 +553,4 @@ GhostLock 只当 leak（S02）
 | 2026-07-26 | 初版：联用清单（思路）+ 独立 CVE 闸门表 + P0–P3 工作包 |
 | 2026-07-26 | 链入 VERIFY：S1/Binder/KGSL 第一轮静态+触达 |
 | 2026-09-03 | §7.1：GitHub 生态复核；43074/64560 判 ❌（版本+符号）；46740/20938 保持 ⚠️ patch-gap 待办 |
+| 2026-09-03 | §7.1.1 Binder patch-gap：20938/21255 判 ❌（release 无 overloaded-zero 语义）；46740 ⚠️ 需 decompile/运行时 |
