@@ -51,3 +51,11 @@ nr: 0x02,0x07,0x10,0x13–0x17,0x20–0x21,0x24,0x2f,0x32–0x37,0x3c–0x3d,
 | 0x58 | timeline_create | | 0x59–0x5d | timeline_wait/query/signal/fence_get/destroy |
 - 实机可达核心族：**syncsource / gpuobj / sparse / timeline / gpumem / submit**。
 - **先审三个低校验**：0x40(syncsource_create)、0x45(gpuobj_alloc)、0x58(timeline_create) —— 零结构也返回 0。
+
+## 7. gpuobj 族 triage（2026-09-03）
+- gpuobj_alloc(0x45) handler 极薄(52 insn)：仅 `copy_metadata` + 内联到静态内部函数；无导出符号 → 裸 asm 无法低成本定错。
+- gpuobj_free(0x46,260 insn) 引用 context_destroy / sync_fence_async_wait —— 疑似多用途 free。
+- gpuobj_import(0x48,364 insn)：kgsl_memdesc_init / setup_dma_buf / setup_useraddr / attach_process —— 复杂入口（dmabuf/useraddr 双路径，历史 UAF 高发区）。
+- syncsource_create(0x40,80)、timeline_create(0x58,134)：薄，主体静态。
+- 结论：继续静态审计需 **uapi 结构定义**（kgsl_gpuobj_alloc 等布局）才能精确构造合法/畸形调用并读语义。下一步优先取该世代 `drivers/gpu/msm/kgsl.h`（LA.UM.9.12 系，Lineage sm6350 / ONYX sm6115 树）重建结构 → 做验证性探针。
+- ⚠️ gpuobj 分配类实机探针有 OOM/重启风险（3.4GB RAM），每次小步。
