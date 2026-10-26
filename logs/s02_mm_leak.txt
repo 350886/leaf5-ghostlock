@@ -1,0 +1,21 @@
+[*] futex_init: cpus=8 hashsize=2048
+[*] mm_sz=0x388 order=3 collisions=2 hashsize=2048
+[*] finding collisions...
+[*]   pile-up: time=58 (baseline=8)
+[*]   target=b4000076de4c5fb0
+[*]   collision[1]=00000064be56b598
+[*]   found 1 collisions
+[*] collision detection complete, memfd=3
+[*] starting bruteforce...
+[*] layout check: sizeof(futex_key_t)=24 off(both.offset)=16
+[*] DIAG hash test: h(0x1000,0x...)=0x35d (repeat=0x35d)
+[*] [0] done: tested=1461 best=2/2 at 0xffffff800013bf90
+[*] [1] done: tested=0 best=0/2 at 0x0
+[*] [7] done: tested=0 best=0/2 at 0x0
+[*] [4] done: tested=0 best=0/2 at 0x0
+[*] [5] done: tested=0 best=0/2 at 0x0
+[*] [6] done: tested=0 best=0/2 at 0x0
+[*] [2] done: tested=0 best=0/2 at 0x0
+[*] [3] done: tested=0 best=0/2 at 0x0
+[+] FOUND mm_struct at 0xffffff800013bf90
+[*] done.

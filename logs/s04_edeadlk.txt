@@ -1,0 +1,16 @@
+ghostlock_edeadlk_detect — full 3-futex cycle
+expect: WAIT returns after CMP (EDEADLK wake), not stuck S forever
+
+[O] blocking on f_pi_chain...
+[M] CMP_REQUEUE_PI ret=-1 errno=35 (Resource deadlock would occur)
+[C] sched_setattr tid=21573 ret=0 errno=0
+[W] WAIT_REQUEUE_PI ret=-1 errno=110 (Connection timed out)
+[W] self sched_setattr ret=0 errno=0
+[O] LOCK_PI chain returned ret=0 errno=0
+[M] WAIT returned quickly after requeue — candidate EDEADLK path
+
+=== SUMMARY ===
+requeue_ret=-1 requeue_errno=35
+wait_returned=1 wait_ret=-1 wait_errno=110
+owner_chain_done=1
+KERNEL SURVIVED (if you read this)
