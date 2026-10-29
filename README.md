@@ -1,9 +1,38 @@
 # Leaf5 GhostLock — ONYX BOOX Leaf5 完整 root
 
-**Onyx Leaf5**（kernel `4.19.157-perf-g77c132eccfab-dirty` #38 / aarch64）上
+**Onyx BOOX Leaf5**（Android 13 / ONYX 固件 4.2.3 / kernel `4.19.157` #38 / aarch64）上
 GhostLock（CVE-2026-43499）的完整利用链：从 UAF 到 `execve` 后不掉能力的 root。
 
 ---
+
+## 测试环境
+
+| 项 | 值 | 取自 |
+|----|-----|------|
+| 品牌 / 型号 | **Onyx BOOX Leaf5** | `ro.product.brand` / `ro.product.model` |
+| Android 版本 | **13**（SDK 33） | `ro.build.version.release` / `ro.build.version.sdk` |
+| ONYX 固件 | **`4.2.3-rel_0928_656b72278`**（incremental 634） | `ro.build.display.id` / `ro.build.version.onyxincremental` |
+| 固件构建时间 | 2026-09-28 15:24:08 HKT | `ro.build.date` |
+| 系统指纹 | `ONYX/TabBoox/TabBoox:13/TKQ1.230615.001/GV2.027.SQ83A:user/release-keys` | `ro.build.fingerprint` |
+| 内核 | **`4.19.157-perf-g77c132eccfab-dirty` #38 SMP PREEMPT** | `/proc/version` |
+| 内核构建时间 | Tue Jul 28 10:48:06 CST 2026（clang 10.0.7 for Android NDK） | `/proc/version` |
+| SoC 平台 | `lito` | `ro.board.platform` |
+| ABI | `arm64-v8a`（兼容 `armeabi-v7a` / `armeabi`） | `ro.product.cpu.abilist` |
+| 分区 | `/system` = `dm-8`（dm-verity，只读）；`/data` 挂载 `nosuid` | `mount` |
+
+```bash
+# 核对命令
+adb shell getprop ro.product.model ro.build.version.release ro.build.display.id
+adb shell cat /proc/version
+# 期望：Leaf5 / 13 / 2026-09-28_15-24_4.2.3-rel_0928_656b72278
+#       Linux version 4.19.157-perf-g77c132eccfab-dirty ... #38 SMP PREEMPT
+```
+
+> `exploit/targets/onyx-leaf5/target.h` 里的每一个偏移都来自 **#38** 这一版内核。
+> 同型号但内核号不同的机器，偏移对不上，必须先重做 `target.h`。
+
+---
+
 
 ## 结论摘要
 

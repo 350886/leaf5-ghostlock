@@ -1,8 +1,33 @@
 # 从 root 倒推：Leaf5 GhostLock 完整利用链
 
-> **文档类型**: 技术报告（倒推式） | **状态**: 已达成完整 root | **基准**: ONYX BOOX Leaf5 / `4.19.157-perf-g77c132eccfab-dirty` #38 / aarch64
+> **文档类型**: 技术报告（倒推式） | **状态**: 已达成完整 root
+> **设备**: ONYX BOOX Leaf5 | **系统**: Android 13（SDK 33）/ ONYX 固件 `4.2.3-rel_0928_656b72278`（incremental 634）
+> **内核**: `4.19.157-perf-g77c132eccfab-dirty` #38 SMP PREEMPT（Tue Jul 28 10:48:06 CST 2026）| **ABI**: arm64-v8a | **SoC**: `lito`
 
 ---
+
+## 0.1 环境基线
+
+本文每一个偏移、每一条崩溃地址都绑在这台机器的这一版系统上。换机或换固件后不成立。
+
+| 项 | 值 |
+|----|-----|
+| 型号 | Onyx BOOX Leaf5（`ro.product.model=Leaf5`，`ro.product.brand=Onyx`） |
+| Android | 13 / API 33（`ro.build.version.release` / `.sdk`） |
+| ONYX 固件 | `4.2.3-rel_0928_656b72278`，incremental 634（`ro.build.display.id`） |
+| 固件构建 | 2026-09-28 15:24:08 HKT |
+| 系统指纹 | `ONYX/TabBoox/TabBoox:13/TKQ1.230615.001/GV2.027.SQ83A:user/release-keys` |
+| 内核版本 | `4.19.157-perf-g77c132eccfab-dirty` **#38** SMP PREEMPT |
+| 内核构建 | Tue Jul 28 10:48:06 CST 2026，clang 10.0.7 for Android NDK |
+| SoC / ABI | `lito` / `arm64-v8a` |
+| `/system` | `/dev/block/dm-8`，dm-verity，只读 |
+| `/data` | 挂载含 `nosuid` |
+
+> 「#38」是本仓库的唯一基准。所有 `target.h` 偏移、`0x40a01cf` 这个掩码尾、
+> `GETUID_CRED_OFF_LO=0x0de7d4` 都只在 #38 上验证过。
+
+---
+
 
 ## 0. 这份文档怎么读
 
@@ -733,7 +758,7 @@ blockdev --setrw /dev/block/dm-8 → '/dev/block/dm-8' is read-only
 | **C10** | `/system` 只读（dm-verity） | dm-linear 层 | 不能持久化到系统分区 |
 | **C11** | `/data` 是 `nosuid` | 挂载选项 | setuid 位无效 |
 | **C12** | `CONFIG_STATIC_USERMODEHELPER=y` 且静态串为空 | 反汇编 `call_usermodehelper_setup` | `modprobe_path` / `core_pattern` 全封死 |
-| **C13** | 内核必须是 `#38` | 所有偏移来自这一版 | 别的版本要重做 `target.h` |
+| **C13** | 内核必须是 `4.19.157-perf-g77c132eccfab-dirty` **#38**（ONYX BOOX Leaf5 / Android 13 / 固件 `4.2.3-rel_0928_656b72278`） | 所有偏移来自这一版 | 换固件或内核号要重做 `target.h` |
 
 ### 8.1 成功率与重试
 

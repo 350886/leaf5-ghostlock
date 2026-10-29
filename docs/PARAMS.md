@@ -3,6 +3,9 @@
 > 所有参数都通过环境变量传入，代码里没有写死的开关。
 > 「实证值」= B405 / B407 / B410 三次成功实际用过的值，已打包在 `scripts/env.sh` 的 `CHAIN_ENV` 里。
 > 改任何一项之前先看 [`ROOT_CHAIN.md`](ROOT_CHAIN.md) 对应的避坑条目 —— 大部分参数改了就是 panic。
+>
+> **基准环境**：ONYX BOOX Leaf5 / Android 13（SDK 33）/ ONYX 固件 `4.2.3-rel_0928_656b72278`
+> / 内核 `4.19.157-perf-g77c132eccfab-dirty` #38 / arm64-v8a。
 
 ---
 
