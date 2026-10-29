@@ -1,6 +1,7 @@
 # 从 root 倒推：Leaf5 GhostLock 完整利用链
 
 > **文档类型**: 技术报告（倒推式） | **状态**: 已达成完整 root
+> **漏洞**: **CVE-2026-43499**（GhostLock）—— `rtmutex` 栈 use-after-free，触发面 `FUTEX_CMP_REQUEUE_PI`
 > **设备**: ONYX BOOX Leaf5 | **系统**: Android 13（SDK 33）/ ONYX 固件 `4.2.3-rel_0928_656b72278`（incremental 634）
 > **内核**: `4.19.157-perf-g77c132eccfab-dirty` #38 SMP PREEMPT（Tue Jul 28 10:48:06 CST 2026）| **ABI**: arm64-v8a | **SoC**: `lito`
 
@@ -12,6 +13,7 @@
 
 | 项 | 值 |
 |----|-----|
+| 漏洞 | **CVE-2026-43499**（GhostLock），`rtmutex` 栈 UAF |
 | 型号 | Onyx BOOX Leaf5（`ro.product.model=Leaf5`，`ro.product.brand=Onyx`） |
 | Android | 13 / API 33（`ro.build.version.release` / `.sdk`） |
 | ONYX 固件 | `4.2.3-rel_0928_656b72278`，incremental 634（`ro.build.display.id`） |
@@ -399,7 +401,7 @@ while (!g_rr_done) usleep(1000);
 
 ## 5. 第四层倒推：写原语本身
 
-### 5.1 根因：`remove_waiter()` 用 `current` 顶替 `waiter->task`
+### 5.1 根因（CVE-2026-43499 / GhostLock）：`remove_waiter()` 用 `current` 顶替 `waiter->task`
 
 ```c
 /* kernel/locking/rtmutex.c（4.19） */

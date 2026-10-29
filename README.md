@@ -33,6 +33,64 @@ adb shell cat /proc/version
 
 ---
 
+## 漏洞
+
+本仓库利用的是 **CVE-2026-43499（代号 GhostLock）**，一个 Linux 内核
+`rtmutex` 的**栈 use-after-free**，触发面在 `FUTEX_CMP_REQUEUE_PI`。
+
+| 项 | 内容 |
+|----|------|
+| CVE 编号 | **CVE-2026-43499** |
+| 代号 | **GhostLock** |
+| 类型 | `rtmutex` 栈 use-after-free（悬垂 `struct rt_mutex_waiter`） |
+| 触发接口 | `futex(FUTEX_CMP_REQUEUE_PI)` → `rt_mutex_adjust_prio_chain` 路径 |
+| 受影响组件 | `kernel/locking/rtmutex.c`（4.19 系） |
+| 内核前置条件 | `CONFIG_FUTEX_PI=y` + `CONFIG_RT_MUTEXES=y`（Leaf5 #38 已确认开启） |
+| 利用产出 | 任意写（2×8 字节 / 轮）→ `cred` → `execve` 后不掉能力的 root |
+
+### 根因
+
+```c
+/* kernel/locking/rtmutex.c */
+static void remove_waiter(struct rt_mutex *lock, struct rt_mutex_waiter *waiter)
+{
+    rt_mutex_dequeue(lock, waiter);
+    current->pi_blocked_on = NULL;      /* ← 用 current 顶替 waiter->task */
+}
+```
+
+正常路径下 `waiter->task == current`，这行等价。
+但 `FUTEX_CMP_REQUEUE_PI` 的异常返回路径会让 `waiter` 变成悬垂结构，
+此时 `waiter->task` 指向的不是 `current` —— 清理动作落到了**别人的** `pi_waiters` 树上，
+而那棵树里塞着攻击者画好的假 `rb_node`。
+
+### 从 UAF 到任意写
+
+```
+悬垂 waiter 被回收后再被引用
+        ↓
+current->pi_waiters 树里存在我们控制的假 rb_node
+        ↓
+rt_mutex_dequeue → rb_erase_cached → case1(+0x78)
+        ↓
++0x80  str x10,[x8]        *(target) = value        ← 目标写
++0x94  str x8,[x9,#8]      *(value+8) = target      ← 副作用
+```
+
+完整推导（为什么必须三轮、为什么必须新线程常驻、为什么掩码是指针低位）
+见 [`docs/ROOT_CHAIN.md`](docs/ROOT_CHAIN.md)。
+
+### 代码位置
+
+| 阶段 | 文件 | 说明 |
+|------|------|------|
+| 触发 UAF | `exploit/src/main.c:1223-1225` | `EDEADLK(35)` = 命中 `pi_blocked_on` 原始边 |
+| 回收悬垂栈 | `exploit/src/main.c:807-880` | 16KB 栈 reclaim |
+| 写原语 | `exploit/src/fops.c:79-400` | `WRITE_PLAN` 解析、shape 选择 |
+| 任意写落地 | `exploit/src/main.c:2088` | 三轮 `THREAD_RACE` |
+| 提权收尾 | `exploit/src/main.c:2641-2880` | `CAPS_FULL_FINISH` |
+
+---
 
 ## 结论摘要
 
