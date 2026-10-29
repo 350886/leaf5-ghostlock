@@ -61,3 +61,23 @@ leaf5/raw/kernel_payload.bin
 leaf5/raw/vmlinux*
 
 *.log
+
+# ---- leaf5-ghostlock: local artifacts (2026-10-29) ----
+# EDL 只读取出的整包镜像，单个可达 100MB，不入库
+leaf5/edl/*.img
+leaf5/edl/*.bin
+leaf5/raw/**
+# 实验过程中的源码备份（*.bak*）
+*.bak
+*.bak_*
+*.bak.*
+*~ 
+# 运行时日志（按需手工挑选后入库）
+logs/*.gz
+logs/*.log
+logs/pstore*
+# 设备端抓取物
+*.dmesg.txt
+
+# 单目录单独构建（legacy）
+exploit/out/
