@@ -3,6 +3,11 @@
 **Onyx BOOX Leaf5**（Android 13 / ONYX 固件 4.2.3 / kernel `4.19.157` #38 / aarch64）上
 GhostLock（CVE-2026-43499）的完整利用链：从 UAF 到 `execve` 后不掉能力的 root。
 
+> 这里放的是**漏洞本身**——利用链、偏移推导、编译脚本，命令行手工跑。
+> 打成 Windows 单文件 GUI、内嵌 adb、一条龙从插线做到 Magisk 持久化的那个成品，
+> 在 **[350886/leaf5-roottool](https://github.com/350886/leaf5-roottool)**。
+> 两者的适配范围是同一台机器；roottool 的 `assets/exploit_src/` 就是本仓库 `exploit/` 的镜像。
+
 ---
 
 ## 测试环境
@@ -155,9 +160,9 @@ adb shell "sh /data/local/tmp/device_root.sh wait"
 
 ```
 .
-├── README.md                  ← 本文件（正序：怎么用）
+├── README.md                  ← 本文件
 ├── docs/
-│   ├── ROOT_CHAIN.md          ★ 倒推式技术报告（结果 → 每一层为什么必须这么做）
+│   ├── ROOT_CHAIN.md          ★ 技术报告（结果 → 每一层为什么必须这么做）
 │   └── PARAMS.md              参数全表（源码默认 / 实证值 / 改了会怎样）
 ├── scripts/                   主机侧脚本（路径全部参数化，不写死）
 │   ├── env.sh                 公共变量 + 已验证 chain 配置
@@ -224,7 +229,7 @@ rt_mutex_dequeue → rb_erase_cached → case1(+0x78)
 且线程跑完必须 `for(;;) pause()` 常驻（栈上钉着 fake `rt_mutex`）。
 
 **为什么每一步都是唯一解** —— 见 [`docs/ROOT_CHAIN.md`](docs/ROOT_CHAIN.md)。
-里面有 5 层倒推、17 条避坑（每条都附崩溃现场）、13 条硬约束。
+里面有 5 层、17 条避坑（每条都附崩溃现场）、13 条硬约束。
 
 ---
 
@@ -265,7 +270,7 @@ PSELECT_ROUTE_ATTEMPTS=2 PAGE_SETUP_ATTEMPTS=1 MM_SPRAY_SLABS=0
 
 | 文档 | 用途 |
 |------|------|
-| [docs/ROOT_CHAIN.md](docs/ROOT_CHAIN.md) | **倒推式技术报告（推荐先读）** |
+| [docs/ROOT_CHAIN.md](docs/ROOT_CHAIN.md) | **技术报告（推荐先读）** |
 | [docs/PARAMS.md](docs/PARAMS.md) | 参数全表 |
 | [leaf5/stages/README.md](leaf5/stages/README.md) | 分析流水线主索引 |
 | [leaf5/PROCESS_LOG.md](leaf5/PROCESS_LOG.md) | 时间线证据 |
@@ -274,4 +279,37 @@ PSELECT_ROUTE_ATTEMPTS=2 PAGE_SETUP_ATTEMPTS=1 MM_SPRAY_SLABS=0
 
 ---
 
-*最后更新: 2026-10-29*
+## 相关项目
+
+### [350886/leaf5-roottool](https://github.com/350886/leaf5-roottool) — Windows 一键 root 客户端
+
+同一个漏洞链，包成给最终用户用的东西。区别只在外壳，内核层的东西一模一样。
+
+| | 本仓库 | leaf5-roottool |
+|---|---|---|
+| 形态 | C 源码 + shell 脚本 + Makefile | Windows 单文件 EXE（PyInstaller） |
+| 上手 | 装 NDK、`make`、`adb push`、`adb shell su` | 双击、插线、点「一键全自动」 |
+| 内核 exploit | `exploit/` 原文 | `assets/exploit_src/` 镜像本仓库 `exploit/` |
+| 取镜像 | `leaf5/edl/` 手工 | `--edl gpt / dump / r` 子命令，自动进 9008 |
+| 换内核 | 手工重推 `target.h` | 自动适配向导（`autopilot.py` + `ndkman.py` 现编） |
+| Magisk | 自己装 | 内置 APK，装完写 `boot_b` |
+| 前置 | NDK + adb + bash | 无（adb / libusb / Zadig 全在包里） |
+
+```bash
+git clone https://github.com/350886/leaf5-roottool
+cd leaf5-roottool
+pip install pyinstaller pyusb docopt pyserial capstone colorama libusb-package
+# 按 README「assets 里的二进制不进仓库」放好 6 个文件，然后：
+python build.py --sign
+```
+
+**两个仓库要平级 clone**：roottool 的 `build.py` 里 `EXPLOIT_REPO` 默认是
+`../leaf5-ghostlock/exploit`，打包前从那里镜像 C 源码。只 clone 一个的话，
+`build.py` 会报找不到源仓库。
+
+它的适配范围和本仓库一致：**只对 Leaf5 / 固件 `4.2.3-rel_0928` / 内核 `4.19.157` #38
+成立**。型号或内核对不上时它会停在动设备之前，而不会拿着错偏移往下写。
+
+---
+
+*最后更新: 2026-10-30*
