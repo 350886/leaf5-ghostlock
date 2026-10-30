@@ -155,9 +155,9 @@ adb shell "sh /data/local/tmp/device_root.sh wait"
 
 ```
 .
-├── README.md                  ← 本文件（正序：怎么用）
+├── README.md                  ← 本文件
 ├── docs/
-│   ├── ROOT_CHAIN.md          ★ 倒推式技术报告（结果 → 每一层为什么必须这么做）
+│   ├── ROOT_CHAIN.md          ★ 技术报告（结果 → 每一层为什么必须这么做）
 │   └── PARAMS.md              参数全表（源码默认 / 实证值 / 改了会怎样）
 ├── scripts/                   主机侧脚本（路径全部参数化，不写死）
 │   ├── env.sh                 公共变量 + 已验证 chain 配置
@@ -224,7 +224,7 @@ rt_mutex_dequeue → rb_erase_cached → case1(+0x78)
 且线程跑完必须 `for(;;) pause()` 常驻（栈上钉着 fake `rt_mutex`）。
 
 **为什么每一步都是唯一解** —— 见 [`docs/ROOT_CHAIN.md`](docs/ROOT_CHAIN.md)。
-里面有 5 层倒推、17 条避坑（每条都附崩溃现场）、13 条硬约束。
+里面有 5 层、17 条避坑（每条都附崩溃现场）、13 条硬约束。
 
 ---
 
@@ -265,7 +265,7 @@ PSELECT_ROUTE_ATTEMPTS=2 PAGE_SETUP_ATTEMPTS=1 MM_SPRAY_SLABS=0
 
 | 文档 | 用途 |
 |------|------|
-| [docs/ROOT_CHAIN.md](docs/ROOT_CHAIN.md) | **倒推式技术报告（推荐先读）** |
+| [docs/ROOT_CHAIN.md](docs/ROOT_CHAIN.md) | **技术报告（推荐先读）** |
 | [docs/PARAMS.md](docs/PARAMS.md) | 参数全表 |
 | [leaf5/stages/README.md](leaf5/stages/README.md) | 分析流水线主索引 |
 | [leaf5/PROCESS_LOG.md](leaf5/PROCESS_LOG.md) | 时间线证据 |
