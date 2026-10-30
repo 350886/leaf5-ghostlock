@@ -1,6 +1,6 @@
-# 从 root 倒推：Leaf5 GhostLock 完整利用链
+# 从 root：Leaf5 GhostLock 完整利用链
 
-> **文档类型**: 技术报告（倒推式） | **状态**: 已达成完整 root
+> **文档类型**: 技术报告 | **状态**: 已达成完整 root
 > **漏洞**: **CVE-2026-43499**（GhostLock）—— `rtmutex` 栈 use-after-free，触发面 `FUTEX_CMP_REQUEUE_PI`
 > **设备**: ONYX BOOX Leaf5 | **系统**: Android 13（SDK 33）/ ONYX 固件 `4.2.3-rel_0928_656b72278`（incremental 634）
 > **内核**: `4.19.157-perf-g77c132eccfab-dirty` #38 SMP PREEMPT（Tue Jul 28 10:48:06 CST 2026）| **ABI**: arm64-v8a | **SoC**: `lito`
